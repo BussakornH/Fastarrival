@@ -1,439 +1,477 @@
 <title>Fast Arrival</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: app shell — sticky top bar, left column = trip planner + signals, right column = arrival answer + mode compare + departure chart. Stacks to one column on phones. */
+/* Layout: full-bleed bands, one message per band (Apple), alternating light / soft grey / navy.
+   Inside each band: 1120px container, label column + content column (Citadel 5/7 split).
+   Numbers are the heroes: huge light numerals, small units, hairline-separated stat rows, "as of" footnotes. */
 :root{
-  --bg:#EEF2F1; --surface:#FFFFFF; --sunk:#E3E9E7; --line:#D3DCD9;
-  --ink:#0F1B1A; --muted:#566664;
-  --accent:#0B6B4F;          /* highway-sign green */
-  --accent-ink:#FFFFFF; --accent-soft:#D6EBE3;
-  --amber:#B97800; --amber-soft:#F6E7C6;
-  --red:#B5362C; --blue:#2A63B8;
-  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --bg:#FFFFFF; --bg-alt:#F4F5F7; --ink:#0B1220; --muted:#4A5568; --faint:#7A8494; --rule:#E2E6EC;
+  --accent:#0A66D8; --accent-hover:#0857B8; --accent-ink:#FFFFFF; --accent-soft:#E6F0FC;
+  --band:#06101E; --band-2:#0D1A2C; --band-ink:#E8EDF4; --band-muted:#93A1B5; --band-rule:rgba(232,237,244,.14); --band-accent:#5AA2FF;
+  --good:#1E8556; --good-soft:#E2F3EA; --warn:#A8620B; --warn-soft:#FBEFD9;
+  --c-dist:#3B4A5E; --c-jam:#D2513F; --c-rain:#3A9AD3; --c-hist:#C3962B;
+  --display:"Inter Tight","Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
   --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
-  --r:10px;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --nav-bg:rgba(255,255,255,.78);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0E1615; --surface:#162120; --sunk:#1D2A28; --line:#2A3A37;
-  --ink:#E6EEEC; --muted:#94A6A3;
-  --accent:#2FB386; --accent-ink:#04130E; --accent-soft:#163B30;
-  --amber:#E2A73A; --amber-soft:#3A2E14; --red:#E6766B; --blue:#7AA7EE; color-scheme:dark}}
+  --bg:#0A0E15; --bg-alt:#111720; --ink:#E8EDF4; --muted:#A3AEBE; --faint:#7D889A; --rule:#232C39;
+  --accent:#5AA2FF; --accent-hover:#7DB6FF; --accent-ink:#04101F; --accent-soft:#12253F;
+  --band:#04080F; --band-2:#0B1422; --band-ink:#E8EDF4; --band-muted:#8E9BAE; --band-rule:rgba(232,237,244,.12); --band-accent:#5AA2FF;
+  --good:#4CC38A; --good-soft:#123222; --warn:#E3A64B; --warn-soft:#33260F;
+  --c-dist:#8C9BB0; --nav-bg:rgba(10,14,21,.78); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0E1615; --surface:#162120; --sunk:#1D2A28; --line:#2A3A37;
-  --ink:#E6EEEC; --muted:#94A6A3;
-  --accent:#2FB386; --accent-ink:#04130E; --accent-soft:#163B30;
-  --amber:#E2A73A; --amber-soft:#3A2E14; --red:#E6766B; --blue:#7AA7EE; color-scheme:dark}
+  --bg:#0A0E15; --bg-alt:#111720; --ink:#E8EDF4; --muted:#A3AEBE; --faint:#7D889A; --rule:#232C39;
+  --accent:#5AA2FF; --accent-hover:#7DB6FF; --accent-ink:#04101F; --accent-soft:#12253F;
+  --band:#04080F; --band-2:#0B1422; --band-ink:#E8EDF4; --band-muted:#8E9BAE; --band-rule:rgba(232,237,244,.12); --band-accent:#5AA2FF;
+  --good:#4CC38A; --good-soft:#123222; --warn:#E3A64B; --warn-soft:#33260F;
+  --c-dist:#8C9BB0; --nav-bg:rgba(10,14,21,.78); color-scheme:dark}
 
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);margin:0}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
-.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;margin:0;text-wrap:balance}
-.label{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
-button,input,select{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+body{background:var(--bg);color:var(--ink);font:17px/1.47 var(--body);letter-spacing:-.011em;margin:0;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:20;background:var(--bg)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(22px,env(safe-area-inset-left,0px));padding-right:max(22px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+h2{font-size:clamp(32px,4.6vw,48px);font-weight:600;letter-spacing:-.02em;line-height:1.08}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.lede{font-size:clamp(18px,2vw,21px);color:var(--muted);line-height:1.38;margin:10px 0 0;max-width:34ch}
+.num{font-variant-numeric:tabular-nums}
+.foot-note{font:12px/1.5 var(--mono);color:var(--faint)}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
 
-/* top bar */
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
-.top .wrap{display:flex;align-items:center;gap:16px;padding-block:10px}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.02em;text-transform:uppercase}
-.brand-mark{width:30px;height:30px;border-radius:6px;background:var(--accent);display:grid;place-items:center}
-.brand-mark svg{width:18px;height:18px}
-nav{display:flex;gap:4px;margin-left:auto}
-nav a{padding:6px 12px;border-radius:6px;color:var(--muted);text-decoration:none;font-weight:500;font-size:14px}
-nav a[aria-current]{color:var(--ink);background:var(--sunk)}
-.avatar{width:34px;height:34px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:600;font-size:13px;border:0;cursor:pointer}
-@media (max-width:720px){nav{display:none}.avatar{margin-left:auto}}
+/* Nav — frosted, thin, sticky (Apple) with plain text links (Citadel) */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--nav-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--rule)}
+.nav .wrap{display:flex;align-items:center;gap:28px;height:52px}
+.logo{font:600 17px var(--display);letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.logo i{width:9px;height:9px;background:var(--accent);border-radius:2px;transform:rotate(45deg)}
+.nav a{font-size:13px;color:var(--muted);text-decoration:none}
+.nav a:hover{color:var(--ink)}
+.nav .links{display:flex;gap:24px;margin-left:auto}
+@media (max-width:640px){.nav .links{display:none}.nav .pill{margin-left:auto}}
 
-.greet{padding-block:24px 8px;display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
-.greet h1{font-size:34px;line-height:1.05}
-.greet p{margin:4px 0 0;color:var(--muted)}
-.live{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);padding:6px 12px;border-radius:99px}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+/* Pills (Apple) */
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:980px;padding:10px 20px;font-size:15px;font-weight:500;border:1px solid var(--accent);cursor:pointer;text-decoration:none;transition:background .2s,color .2s}
+.pill.primary{background:var(--accent);color:var(--accent-ink)}
+.pill.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.pill.ghost{background:transparent;color:var(--accent)}
+.pill.ghost:hover{background:var(--accent-soft)}
+.pill.sm{padding:6px 14px;font-size:13px}
+.link{color:var(--accent);text-decoration:none;font-weight:500;cursor:pointer;background:none;border:0;padding:0}
+.link:hover{text-decoration:underline}
 
-.grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:20px;padding-block:12px 48px;align-items:start}
-@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
-.col{display:flex;flex-direction:column;gap:20px;min-width:0}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
-.panel h2{font-size:20px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.panel h2 small{font-family:var(--body);font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:0}
+/* Bands */
+.band{padding-block:clamp(64px,10vw,120px)}
+.band.alt{background:var(--bg-alt)}
+.band.dark{background:var(--band);color:var(--band-ink)}
+.band.dark .eyebrow,.band.dark .foot-note{color:var(--band-muted)}
+.band.dark .lede{color:var(--band-muted)}
+.split{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:48px;align-items:start}
+@media (max-width:860px){.split{grid-template-columns:minmax(0,1fr);gap:28px}}
+.split > *{min-width:0}
 
-/* planner */
-.route{display:grid;grid-template-columns:20px 1fr;gap:0 10px}
-.rail{display:flex;flex-direction:column;align-items:center;padding-top:31px}
-.rail i{width:10px;height:10px;border-radius:50%;border:2px solid var(--accent);background:var(--surface)}
-.rail i:last-child{background:var(--accent)}
-.rail b{flex:1;width:2px;background:repeating-linear-gradient(var(--line) 0 4px,transparent 4px 8px);margin:4px 0;min-height:40px}
-.fields{display:flex;flex-direction:column;gap:12px}
-.field{display:flex;flex-direction:column;gap:4px}
-.field label{font-size:12.5px;font-weight:500;color:var(--muted)}
-.input{width:100%;background:var(--sunk);border:1px solid transparent;border-radius:8px;padding:10px 12px}
-.input:focus{border-color:var(--accent);outline:none;background:var(--surface)}
-.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--sunk);padding:3px;border-radius:8px;margin-top:16px}
-.seg button{border:0;background:transparent;padding:8px;border-radius:6px;cursor:pointer;font-weight:500;font-size:14px;color:var(--muted)}
-.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0 / .12)}
-.timerow{display:flex;align-items:center;gap:12px;margin-top:14px}
-.timerow output{font-family:var(--mono);font-size:22px;font-weight:500;min-width:64px}
-input[type=range]{flex:1;accent-color:var(--accent)}
-.hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+/* Hero */
+.hero{background:var(--band);color:var(--band-ink);padding-block:clamp(48px,8vw,96px) clamp(48px,8vw,88px)}
+.hero .grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:56px;align-items:end}
+@media (max-width:900px){.hero .grid{grid-template-columns:minmax(0,1fr);gap:40px}}
+.hero .grid > *{min-width:0}
+.hero .eyebrow{color:var(--band-muted)}
+.eta-label{font:500 clamp(20px,2.4vw,26px)/1.2 var(--display);color:var(--band-muted);margin-top:18px}
+.eta{font-family:var(--display);font-weight:300;font-size:clamp(104px,19vw,208px);line-height:.88;letter-spacing:-.045em;font-variant-numeric:tabular-nums;margin-top:6px}
+.hero-sub{font-size:clamp(18px,2vw,21px);line-height:1.4;color:var(--band-ink);margin:18px 0 0;max-width:30ch}
+.hero-sub span{color:var(--band-muted)}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.hero .pill.ghost{color:var(--band-accent);border-color:var(--band-accent)}
+.hero .pill.ghost:hover{background:rgba(90,162,255,.12)}
+.hero .pill.primary{background:var(--band-accent);border-color:var(--band-accent);color:#04101F}
+.hero .foot-note{margin-top:28px}
+.window{margin-top:30px;max-width:520px}
+.wtrack{position:relative;height:6px;background:var(--band-2);border-radius:3px;margin-top:10px}
+.wband{position:absolute;top:0;bottom:0;background:var(--band-muted);opacity:.45;border-radius:3px;transition:left .3s,width .3s}
+.wmid{position:absolute;top:-6px;width:2px;height:18px;background:var(--band-ink);transition:left .3s}
+.wgoal{position:absolute;top:-9px;height:24px;border-left:2px dashed var(--band-accent)}
+.wticks{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--band-muted);margin-top:8px}
 
-/* signals */
-.sig{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding-block:12px;border-top:1px solid var(--line)}
-.sig:first-of-type{border-top:0;padding-top:0}
-.sig .ic{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;background:var(--sunk);color:var(--ink)}
-.sig .ic svg{width:18px;height:18px}
-.sig h3{font-family:var(--body);font-size:14px;font-weight:600}
-.sig p{margin:0;font-size:13px;color:var(--muted)}
-.sig .val{font-family:var(--mono);font-size:14px;text-align:right;white-space:nowrap}
-.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;letter-spacing:.02em}
-.chip.ok{background:var(--accent-soft);color:var(--accent)}
-.chip.warn{background:var(--amber-soft);color:var(--amber)}
+/* Planner (in hero) */
+.planner{border-top:1px solid var(--band-rule);padding-top:22px;display:flex;flex-direction:column;gap:18px}
+.field label{display:block;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--band-muted);margin-bottom:6px}
+.field input[type=text]{width:100%;background:transparent;border:0;border-bottom:1px solid var(--band-rule);color:var(--band-ink);padding:6px 0 10px;font-size:19px;font-weight:500}
+.field input[type=text]:focus{outline:none;border-bottom-color:var(--band-accent)}
+.seg{display:inline-grid;grid-template-columns:1fr 1fr;border:1px solid var(--band-rule);border-radius:980px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--band-muted);padding:7px 16px;border-radius:980px;cursor:pointer;font-size:14px;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--band-ink);color:var(--band)}
+.timerow{display:flex;align-items:center;gap:16px}
+.timerow output{font:500 28px var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.02em;min-width:84px}
+input[type=range]{flex:1;accent-color:var(--band-accent);min-width:0}
 
-/* answer */
-.answer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 24px;align-items:end}
-@media (max-width:560px){.answer{grid-template-columns:minmax(0,1fr)}}
-.eta{font-family:var(--display);font-weight:700;font-size:clamp(64px,11vw,104px);line-height:.9;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-.eta-sub{font-size:15px;color:var(--muted);margin-top:8px}
-.eta-sub strong{color:var(--ink);font-weight:600}
-.conf{min-width:220px}
-.confbar{position:relative;height:28px;background:var(--sunk);border-radius:6px;margin-top:8px}
-.confbar .band{position:absolute;top:0;bottom:0;background:var(--accent-soft);border-radius:6px}
-.confbar .mid{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--accent);border-radius:2px}
-.confbar .goal{position:absolute;top:-6px;bottom:-6px;width:0;border-left:2px dashed var(--ink)}
-.confticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:6px}
-.banner{margin-top:18px;display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:8px;background:var(--amber-soft);color:var(--ink);font-size:14px}
-.banner.good{background:var(--accent-soft)}
-.banner svg{flex:none;width:18px;height:18px;margin-top:2px;color:var(--amber)}
-.banner.good svg{color:var(--accent)}
+/* Stat row — hairlines, no cards (Citadel) */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:48px;border-top:1px solid var(--rule)}
+.stat{padding:28px 24px 8px 0;border-right:1px solid var(--rule);min-width:0}
+.stat + .stat{padding-left:24px}
+.stat:last-child{border-right:0}
+.stat .v{font:300 clamp(44px,6vw,64px)/1 var(--display);letter-spacing:-.035em;font-variant-numeric:tabular-nums;margin-top:12px;white-space:nowrap}
+.stat .v small{font-size:.4em;font-weight:500;letter-spacing:0;color:var(--muted);margin-left:4px}
+.stat p{margin:10px 0 0;font-size:14px;color:var(--muted);line-height:1.4}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat{border-right:0;border-bottom:1px solid var(--rule);padding:22px 12px 18px 0}.stat + .stat{padding-left:0}.stat:nth-child(even){padding-left:16px;border-left:1px solid var(--rule)}.stat:nth-last-child(-n+2){border-bottom:0}}
 
-/* breakdown */
-.stack{display:flex;height:14px;border-radius:4px;overflow:hidden;margin:14px 0 10px;background:var(--sunk)}
-.stack span{display:block;height:100%;transition:width .25s ease}
-.s-dist{background:var(--accent)} .s-jam{background:var(--red)} .s-rain{background:var(--blue)} .s-hist{background:var(--amber)}
-.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
-.legend b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
-.legend em{font-style:normal;font-family:var(--mono);color:var(--ink);margin-left:4px}
+/* Breakdown */
+.stack{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px;margin-top:6px}
+.stack span{display:block;height:100%;transition:width .3s ease}
+.rows{margin-top:24px;border-top:1px solid var(--rule)}
+.row{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:14px;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--rule)}
+.row b{width:10px;height:10px;border-radius:2px;display:block;align-self:center}
+.row h3{font:600 17px var(--body);letter-spacing:-.01em}
+.row p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.row .m{font:500 22px var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 
-/* modes */
-.modes{display:grid;gap:8px}
-.mode{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(90px,180px) 70px;gap:14px;align-items:center;width:100%;text-align:left;background:transparent;border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer}
-.mode:hover{border-color:var(--muted)}
-.mode[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
-.mode .mi{width:40px;height:40px;border-radius:8px;background:var(--sunk);display:grid;place-items:center}
-.mode[aria-pressed="true"] .mi{background:var(--accent);color:var(--accent-ink)}
-.mode .mi svg{width:20px;height:20px}
-.mode .mn{font-weight:600;font-size:14.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.mode .ms{font-size:12.5px;color:var(--muted)}
-.mode .mr{position:relative;height:8px;background:var(--sunk);border-radius:4px}
-.mode .mr span{position:absolute;top:0;bottom:0;border-radius:4px;background:var(--muted);opacity:.55}
-.mode[aria-pressed="true"] .mr span{background:var(--accent);opacity:1}
-.mode .mt{font-family:var(--mono);font-size:16px;font-weight:500;text-align:right}
-.mode .mt small{display:block;font-size:11.5px;color:var(--muted);font-weight:400}
-@media (max-width:560px){.mode{grid-template-columns:36px minmax(0,1fr) 64px}.mode .mr{display:none}}
+/* Chart — single line on navy (Citadel), purposeful motion (Apple) */
+.chartbox{overflow-x:auto;margin-top:8px}
+svg.chart{display:block;width:100%;min-width:560px;height:auto;cursor:crosshair}
+.chart .g{stroke:var(--band-rule);stroke-width:1}
+.chart .ax{fill:var(--band-muted);font:11px var(--mono)}
+.chart .area{fill:var(--band-muted);opacity:.16}
+.chart .line{fill:none;stroke:var(--band-ink);stroke-width:2;stroke-linejoin:round}
+.chart .sel{stroke:var(--band-accent);stroke-width:1.5}
+.chart .seldot{fill:var(--band-accent)}
+.chart .best{fill:var(--good);stroke:var(--band);stroke-width:3}
+.chart .lbl{font:500 12px var(--mono)}
+.chart .lbl.a{fill:var(--band-accent)} .chart .lbl.b{fill:var(--good)}
+.chart-meta{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:18px;font-size:14px;color:var(--band-muted)}
+.chart-meta strong{color:var(--band-ink);font-weight:500}
+.key{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:-1px}
 
-/* chart */
-.chartbox{overflow-x:auto}
-svg.chart{display:block;width:100%;min-width:520px;height:auto}
-.chart .gridl{stroke:var(--line);stroke-width:1}
-.chart .axis{fill:var(--muted);font:11px var(--mono)}
-.chart .bar{fill:var(--sunk);cursor:pointer;transition:fill .15s}
-.chart .bar:hover{fill:var(--line)}
-.chart .bar.sel{fill:var(--accent)}
-.chart .bar.best{fill:var(--accent-soft)}
-.chart .whisk{stroke:var(--muted);stroke-width:1.5}
-.chart .sel-label{fill:var(--ink);font:600 12px var(--mono)}
+/* Compare — Apple-style side-by-side columns */
+.compare{overflow-x:auto;margin-top:48px}
+.cgrid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));min-width:640px;border-top:1px solid var(--rule)}
+.ccol{padding:28px 20px 24px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:0;min-width:0}
+.ccol:first-child{padding-left:0}
+.ccol:last-child{border-right:0}
+.ccol.on{background:linear-gradient(var(--accent-soft),var(--accent-soft)) top/100% 3px no-repeat}
+.ccol .ic{width:28px;height:28px;color:var(--ink)}
+.ccol h3{font:600 21px var(--display);letter-spacing:-.015em;margin-top:14px}
+.ccol .route{font-size:13px;color:var(--muted);min-height:38px;margin-top:4px}
+.ccol .big{font:300 48px/1 var(--display);letter-spacing:-.035em;font-variant-numeric:tabular-nums;margin-top:18px}
+.ccol .bigl{font-size:13px;color:var(--muted);margin-top:4px}
+.ccol dl{margin:18px 0 20px;display:grid;gap:0}
+.ccol dl div{padding:12px 0;border-top:1px solid var(--rule)}
+.ccol dt{font-size:12px;color:var(--faint)}
+.ccol dd{margin:2px 0 0;font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:3px 9px;border-radius:980px;margin-top:10px;align-self:flex-start}
+.tag.good{background:var(--good-soft);color:var(--good)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.ccol .pill{margin-top:auto;align-self:flex-start}
 
-/* saved */
-.saved{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
-.trip{display:flex;flex-direction:column;gap:2px;text-align:left;border:1px solid var(--line);background:transparent;border-radius:8px;padding:12px;cursor:pointer}
-.trip:hover{border-color:var(--muted)}
-.trip strong{font-weight:600}
-.trip span{font-size:12.5px;color:var(--muted)}
-.trip .num{font-size:13px;color:var(--ink);margin-top:6px}
+/* History */
+.hist-fig{font:300 clamp(72px,11vw,128px)/.9 var(--display);letter-spacing:-.045em}
+.hist-fig small{display:block;font-size:clamp(18px,2vw,21px);font-weight:500;letter-spacing:-.01em;color:var(--muted);margin-top:14px;line-height:1.3}
+.dots{display:grid;grid-template-columns:repeat(20,1fr);gap:5px;max-width:420px;margin-top:28px}
+.dots i{aspect-ratio:1;border-radius:50%;background:var(--good)}
+.dots i.late{background:var(--rule)}
 
-.foot{font-size:12.5px;color:var(--muted);padding-block:0 32px}
+footer{background:var(--band);color:var(--band-muted);font-size:12px;line-height:1.6;padding-block:40px}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px}
+footer strong{color:var(--band-ink);font-weight:500}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<header class="top">
+<header class="nav">
   <div class="wrap">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 12 4l7 15"/><path d="M12 19v-4"/><path d="M12 11v-1"/></svg></span>
-      Fast Arrival
-    </div>
-    <nav aria-label="Main">
-      <a href="#" aria-current="page">Plan</a>
-      <a href="#">My trips</a>
-      <a href="#">Alerts</a>
-      <a href="#">Settings</a>
+    <span class="logo"><i aria-hidden="true"></i>Fast Arrival</span>
+    <nav class="links" aria-label="Main">
+      <a href="#plan">Plan</a><a href="#inputs">Signals</a><a href="#leave">When to leave</a><a href="#compare">Compare</a><a href="#history">History</a>
     </nav>
-    <button class="avatar" aria-label="Your profile">YOU</button>
+    <a class="pill primary sm" href="#plan">Plan a trip</a>
   </div>
 </header>
 
-<main class="wrap">
-  <section class="greet">
-    <div>
-      <h1>Good morning. Here's your commute.</h1>
-      <p>Thursday, 19 November · Sample trip shown, edit it on the left</p>
-    </div>
-    <span class="live"><span class="dot"></span>Traffic and weather updated 2 min ago</span>
-  </section>
-
-  <div class="grid">
-    <!-- LEFT -->
-    <div class="col">
-      <section class="panel" aria-labelledby="plan-h">
-        <h2 id="plan-h">Plan a trip</h2>
-        <div class="route">
-          <div class="rail" aria-hidden="true"><i></i><b></b><i></i></div>
-          <div class="fields">
-            <div class="field"><label for="from">From</label><input class="input" id="from" value="Home · Ari, Phaya Thai"></div>
-            <div class="field"><label for="to">To</label><input class="input" id="to" value="Office · Silom Rd, Bang Rak"></div>
-          </div>
+<main>
+  <!-- HERO: the answer -->
+  <section class="hero" id="plan" aria-labelledby="eta-h">
+    <div class="wrap grid">
+      <div aria-live="polite">
+        <div class="eyebrow" id="hero-eyebrow">Thursday 19 November · Home → Office</div>
+        <div class="eta-label" id="eta-h">You arrive at</div>
+        <div class="eta" id="eta">08:41</div>
+        <p class="hero-sub" id="hero-sub">By car, leaving 07:50. <span>51 minutes door to door.</span></p>
+        <div class="window">
+          <div class="eyebrow">80% likely window</div>
+          <div class="wtrack"><span class="wband" id="wband"></span><span class="wmid" id="wmid"></span><span class="wgoal" id="wgoal" hidden></span></div>
+          <div class="wticks"><span id="w-lo">08:33</span><span id="w-hi">08:52</span></div>
         </div>
-        <div class="seg" role="group" aria-label="Time type">
-          <button id="m-leave" aria-pressed="true">Leave at</button>
-          <button id="m-arrive" aria-pressed="false">Arrive by</button>
+        <div class="cta-row">
+          <button class="pill primary" id="cta-best">Leave at 07:15 instead</button>
+          <a class="pill ghost" href="#compare">Compare ways to go</a>
+        </div>
+        <div class="foot-note" id="hero-foot">Based on 1,046 similar trips, 2006–2026 · Traffic and weather as of 07:48 ICT</div>
+      </div>
+
+      <form class="planner" aria-label="Trip" onsubmit="return false">
+        <div class="field"><label for="from">From</label><input type="text" id="from" value="Home · Ari, Phaya Thai"></div>
+        <div class="field"><label for="to">To</label><input type="text" id="to" value="Office · Silom Rd, Bang Rak"></div>
+        <div>
+          <div class="seg" role="group" aria-label="Time type">
+            <button type="button" id="m-leave" aria-pressed="true">Leave at</button>
+            <button type="button" id="m-arrive" aria-pressed="false">Arrive by</button>
+          </div>
         </div>
         <div class="timerow">
           <output id="t-out" for="t">07:50</output>
           <input type="range" id="t" min="390" max="570" step="5" value="470" aria-label="Time">
         </div>
-        <p class="hint" id="t-hint">Drag to see how leaving earlier or later changes your arrival.</p>
-      </section>
-
-      <section class="panel" aria-labelledby="sig-h">
-        <h2 id="sig-h">What we're reading <small>for this trip</small></h2>
-        <div class="sig">
-          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20 20 4"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/></svg></span>
-          <div><h3>Distance</h3><p id="sig-dist-p">Route length for your chosen mode</p></div>
-          <span class="val" id="sig-dist">11.2 km</span>
-        </div>
-        <div class="sig">
-          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="3"/><circle cx="12" cy="7" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17" r="1.5"/></svg></span>
-          <div><h3>Traffic jam</h3><p id="sig-jam-p">Rama IV Rd and Sathorn</p></div>
-          <span class="val"><span class="chip warn" id="sig-jam">Heavy</span></span>
-        </div>
-        <div class="sig">
-          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 15a4 4 0 1 1 1-7.9A5 5 0 0 1 18 9a3 3 0 0 1 0 6Z"/><path d="M9 18l-1 2M13 18l-1 2M17 18l-1 2"/></svg></span>
-          <div><h3>Weather</h3><p id="sig-rain-p">Chance of rain at departure</p></div>
-          <span class="val" id="sig-rain">55%</span>
-        </div>
-        <div class="sig">
-          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg></span>
-          <div><h3>20 years of trips</h3><p id="sig-hist-p">Similar Thursday mornings, 2006–2026</p></div>
-          <span class="val" id="sig-hist">1,046</span>
-        </div>
-      </section>
+      </form>
     </div>
+  </section>
 
-    <!-- RIGHT -->
-    <div class="col">
-      <section class="panel" aria-labelledby="ans-h" aria-live="polite">
-        <div class="answer">
-          <div>
-            <div class="label" id="ans-h">You'll arrive around</div>
-            <div class="eta" id="eta">08:28</div>
-            <div class="eta-sub" id="eta-sub">by <strong>BTS + MRT</strong>, leaving <strong>07:50</strong> · 38 min trip</div>
-          </div>
-          <div class="conf">
-            <div class="label">Likely window (80%)</div>
-            <div class="confbar" id="confbar"><span class="band"></span><span class="mid"></span><span class="goal" hidden></span></div>
-            <div class="confticks"><span id="c-lo">08:25</span><span id="c-hi">08:32</span></div>
-          </div>
-        </div>
-        <div class="banner" id="banner"></div>
-
-        <div class="label" style="margin-top:22px">Where your minutes come from</div>
-        <div class="stack" id="stack"><span class="s-dist"></span><span class="s-jam"></span><span class="s-rain"></span><span class="s-hist"></span></div>
-        <div class="legend" id="legend"></div>
-      </section>
-
-      <section class="panel" aria-labelledby="modes-h">
-        <h2 id="modes-h">Compare ways to go <small>bars show the likely window</small></h2>
-        <div class="modes" id="modes"></div>
-      </section>
-
-      <section class="panel" aria-labelledby="chart-h">
-        <h2 id="chart-h">When should I leave? <small id="chart-sub">trip length by departure time</small></h2>
-        <div class="chartbox"><svg class="chart" id="chart" viewBox="0 0 640 220" role="img" aria-label="Trip length by departure time"></svg></div>
-        <p class="hint">Tap a bar to pick that departure time. Lighter green marks the quickest slot.</p>
-      </section>
-
-      <section class="panel" aria-labelledby="saved-h">
-        <h2 id="saved-h">Saved trips</h2>
-        <div class="saved">
-          <button class="trip" data-t="470"><strong>Home → Office</strong><span>Weekdays · BTS + MRT</span><span class="num">Usually 36–41 min</span></button>
-          <button class="trip" data-t="530"><strong>Home → Gym (Asok)</strong><span>Tue, Thu · Motorbike taxi</span><span class="num">Usually 18–26 min</span></button>
-          <button class="trip" data-t="420"><strong>Office → Don Mueang Airport</strong><span>One-off · Car</span><span class="num">Usually 42–70 min</span></button>
-        </div>
-      </section>
+  <!-- SIGNALS -->
+  <section class="band" id="inputs" aria-labelledby="in-h">
+    <div class="wrap">
+      <div class="split">
+        <div><div class="eyebrow">The inputs</div><h2 id="in-h" style="margin-top:10px">Four signals. One time.</h2></div>
+        <p class="lede" style="margin-top:0">Every prediction reads the same three live sources, then checks them against twenty years of trips like yours.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="eyebrow">Distance</div><div class="v" id="v-dist">11.2<small>km</small></div><p id="p-dist">Car route via Rama IV</p></div>
+        <div class="stat"><div class="eyebrow">Traffic jam</div><div class="v" id="v-jam">+18<small>min</small></div><p id="p-jam">Heavy on Rama IV and Sathorn</p></div>
+        <div class="stat"><div class="eyebrow">Weather</div><div class="v" id="v-rain">64<small>% rain</small></div><p id="p-rain">Chance of rain at 07:50</p></div>
+        <div class="stat"><div class="eyebrow">History</div><div class="v" id="v-hist">1,046<small>trips</small></div><p id="p-hist">Thursdays near 07:50, 2006–2026</p></div>
+      </div>
     </div>
-  </div>
-  <p class="foot">Design draft. Predictions on this page come from a sample model for demonstration, not live data.</p>
+  </section>
+
+  <!-- BREAKDOWN -->
+  <section class="band alt" aria-labelledby="bd-h">
+    <div class="wrap split">
+      <div>
+        <div class="eyebrow">Breakdown</div>
+        <h2 id="bd-h" style="margin-top:10px">Where the <span id="bd-total">51</span> minutes go.</h2>
+        <p class="lede">Distance sets the floor. Traffic and weather decide the rest.</p>
+      </div>
+      <div>
+        <div class="stack" id="stack" aria-hidden="true"><span style="background:var(--c-dist)"></span><span style="background:var(--c-jam)"></span><span style="background:var(--c-rain)"></span><span style="background:var(--c-hist)"></span></div>
+        <div class="rows" id="rows"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHEN TO LEAVE -->
+  <section class="band dark" id="leave" aria-labelledby="lv-h">
+    <div class="wrap">
+      <div class="split">
+        <div><div class="eyebrow">When to leave</div><h2 id="lv-h" style="margin-top:10px">Leave earlier. Arrive much earlier.</h2></div>
+        <p class="lede" style="margin-top:0" id="lv-lede">Trip length by departure time for car. Tap the chart to try a time.</p>
+      </div>
+      <div class="chartbox" style="margin-top:40px"><svg class="chart" id="chart" viewBox="0 0 960 300" role="img" aria-label="Trip length by departure time"></svg></div>
+      <div class="chart-meta">
+        <span><i class="key" style="background:var(--good)"></i>Quickest: <strong id="m-best">07:15 · 39 min</strong></span>
+        <span><i class="key" style="background:var(--band-accent)"></i>Your time: <strong id="m-sel">07:50 · 51 min</strong></span>
+        <span><i class="key" style="background:var(--band-muted);opacity:.5"></i>Shaded band is the 80% range</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARE -->
+  <section class="band" id="compare" aria-labelledby="cp-h">
+    <div class="wrap">
+      <div class="split">
+        <div><div class="eyebrow">Compare</div><h2 id="cp-h" style="margin-top:10px">Four ways to go.</h2></div>
+        <p class="lede" style="margin-top:0">Same trip, same moment, side by side. Choose one and the whole page updates.</p>
+      </div>
+      <div class="compare"><div class="cgrid" id="cgrid"></div></div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="band alt" id="history" aria-labelledby="hs-h">
+    <div class="wrap split">
+      <div>
+        <div class="eyebrow">Days like today</div>
+        <h2 id="hs-h" style="margin-top:10px">Twenty years of proof.</h2>
+        <p class="lede" id="hs-lede">Rainy November Thursdays, leaving around 07:50 by car.</p>
+      </div>
+      <div>
+        <div class="hist-fig num" id="hs-fig">9<small>in 10 arrived inside the window</small></div>
+        <div class="dots" id="dots" aria-hidden="true"></div>
+        <p class="foot-note" style="margin-top:20px" id="hs-foot">Each dot is 5% of 1,046 matched trips · 2006–2026</p>
+      </div>
+    </div>
+  </section>
 </main>
+
+<footer>
+  <div class="wrap">
+    <span><strong>Fast Arrival</strong> · Design draft</span>
+    <span>All figures on this page come from a sample model for demonstration. They are not live traffic, weather or historical data.</span>
+  </div>
+</footer>
 
 <script>
 (() => {
   const ICON = {
-    car:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>',
-    rail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 11h12M9 21l1.5-4M15 21l-1.5-4"/></svg>',
-    bus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="15" rx="2"/><path d="M4 11h16M8 21v-3M16 21v-3"/></svg>',
-    moto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M5.5 16.5 10 10h5l3.5 6.5M13 6h3l-1 4"/></svg>'
+    car:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>',
+    rail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 11h12M9 21l1.5-4M15 21l-1.5-4"/></svg>',
+    bus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="3" width="16" height="15" rx="2"/><path d="M4 11h16M8 21v-3M16 21v-3"/></svg>',
+    moto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M5.5 16.5 10 10h5l3.5 6.5M13 6h3l-1 4"/></svg>'
   };
-  // Sample model: minutes = distance base + traffic sensitivity x jam level + rain sensitivity x rain chance + historical correction
+  // Sample model: distance base + traffic sensitivity x jam + rain sensitivity x rain chance + history correction
   const MODES = [
-    {id:'rail', name:'BTS + MRT', sub:'Ari → Sala Daeng, 1 transfer, 6 min walk', km:12.4, base:30, jam:1.5, rain:4, hist:2, spread:.07},
-    {id:'car',  name:'Car',        sub:'Phahonyothin → Rama IV → Silom', km:11.2, base:20, jam:26, rain:8, hist:3, spread:.2},
-    {id:'moto', name:'Motorbike taxi', sub:'Ride-hail, side streets', km:10.6, base:18, jam:9, rain:13, hist:1, spread:.16},
-    {id:'bus',  name:'Bus',        sub:'2 lines, change at Victory Monument', km:10.9, base:32, jam:22, rain:6, hist:4, spread:.24},
+    {id:'car',  name:'Car',            short:'car',            sub:'Phahonyothin → Rama IV → Silom', km:11.2, base:20, jam:26, rain:8,  hist:3, spread:.2},
+    {id:'rail', name:'BTS + MRT',      short:'BTS + MRT',      sub:'Ari → Sala Daeng, 1 transfer',   km:12.4, base:30, jam:1.5,rain:4,  hist:2, spread:.07},
+    {id:'moto', name:'Motorbike taxi', short:'motorbike taxi', sub:'Side streets, ride-hail',        km:10.6, base:18, jam:9,  rain:13, hist:1, spread:.16},
+    {id:'bus',  name:'Bus',            short:'bus',            sub:'2 lines via Victory Monument',  km:10.9, base:32, jam:22, rain:6,  hist:4, spread:.24},
   ];
-  const jamAt  = t => Math.min(1, .15 + .85*Math.exp(-(((t-490)/55)**2)));     // peak ~08:10
-  const rainAt = t => .2 + .45*Math.exp(-(((t-460)/70)**2));                   // peak ~07:40
-  const fmt = m => { m = Math.round(m); const h = Math.floor(m/60)%24, mm = m%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); };
+  const jamAt  = t => Math.min(1, .15 + .85*Math.exp(-(((t-490)/55)**2)));
+  const rainAt = t => .2 + .45*Math.exp(-(((t-460)/70)**2));
+  const fmt = m => { m = Math.round(m); return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
   function predict(mode, t){
     const j = jamAt(t), r = rainAt(t);
     const parts = {dist:mode.base, jam:mode.jam*j, rain:mode.rain*r, hist:mode.hist*(.5+j*.5)};
     const mid = parts.dist+parts.jam+parts.rain+parts.hist;
-    return {parts, mid, lo:mid*(1-mode.spread), hi:mid*(1+mode.spread*1.5), j, r};
+    return {parts, mid, lo:mid*(1-mode.spread*.8), hi:mid*(1+mode.spread*1.1), j, r};
   }
-
   const S = {modeId:'car', type:'leave', t:470, arrive:540};
   const $ = id => document.getElementById(id);
-
+  const modeOf = () => MODES.find(m => m.id === S.modeId);
   function departFor(mode){
     if (S.type === 'leave') return S.t;
-    // Arrive by: latest departure where the late end of the window still makes it
-    for (let t = S.arrive - 15; t >= 330; t -= 5){ if (t + predict(mode,t).hi <= S.arrive) return t; }
+    for (let t = S.arrive - 15; t >= 330; t -= 5) if (t + predict(mode,t).hi <= S.arrive) return t;
     return 330;
   }
+  function bestDeparture(mode, around){
+    let best = {t:around, d:predict(mode,around).mid};
+    for (let t = around-45; t <= around+15; t += 5){ if (t < 390) continue; const d = predict(mode,t).mid; if (d < best.d - .5) best = {t, d}; }
+    return best;
+  }
+  const onTime = m => Math.round(92 - m.spread*60);
 
   function render(){
-    const mode = MODES.find(m => m.id === S.modeId);
-    const dep = departFor(mode), p = predict(mode, dep);
+    const mode = modeOf(), dep = departFor(mode), p = predict(mode, dep);
+    const arr = dep + p.mid;
     $('t-out').textContent = fmt(S.type === 'leave' ? S.t : S.arrive);
     $('t').value = S.type === 'leave' ? S.t : S.arrive;
-    $('t-hint').textContent = S.type === 'leave'
-      ? 'Drag to see how leaving earlier or later changes your arrival.'
-      : 'Set when you need to be there. We work back to the latest safe departure.';
 
-    // answer
+    // HERO
     if (S.type === 'leave'){
-      $('ans-h').textContent = "You'll arrive around";
-      $('eta').textContent = fmt(dep + p.mid);
-      $('eta-sub').innerHTML = `by <strong>${mode.name}</strong>, leaving <strong>${fmt(dep)}</strong> · ${Math.round(p.mid)} min trip`;
+      $('eta-h').textContent = 'You arrive at';
+      $('eta').textContent = fmt(arr);
+      $('hero-sub').innerHTML = `By ${mode.short}, leaving ${fmt(dep)}. <span>${Math.round(p.mid)} minutes door to door.</span>`;
     } else {
-      $('ans-h').textContent = 'Leave by';
+      $('eta-h').textContent = 'Leave by';
       $('eta').textContent = fmt(dep);
-      $('eta-sub').innerHTML = `by <strong>${mode.name}</strong> to arrive by <strong>${fmt(S.arrive)}</strong> · ${Math.round(p.mid)} min trip`;
+      $('hero-sub').innerHTML = `By ${mode.short}, to arrive by ${fmt(S.arrive)}. <span>${Math.round(p.mid)} minutes door to door.</span>`;
     }
-    // confidence bar, scaled to a 40-minute window around the arrival
-    const aLo = dep+p.lo, aHi = dep+p.hi, aMid = dep+p.mid;
-    const c0 = Math.floor((aMid-20)/5)*5, span = 40, pct = v => Math.max(0,Math.min(100,(v-c0)/span*100));
-    const bar = $('confbar');
-    bar.querySelector('.band').style.cssText = `left:${pct(aLo)}%;width:${pct(aHi)-pct(aLo)}%`;
-    bar.querySelector('.mid').style.left = `calc(${pct(aMid)}% - 1px)`;
-    const goal = bar.querySelector('.goal');
-    goal.hidden = S.type !== 'arrive'; goal.style.left = pct(S.arrive)+'%';
-    $('c-lo').textContent = fmt(aLo); $('c-hi').textContent = fmt(aHi);
-
-    // banner: compare against best slot within ±30 min
-    const ban = $('banner');
-    let best = {t:dep, d:p.mid};
-    for (let t = dep-30; t <= dep+30; t += 5){ const d = predict(mode,t).mid; if (d < best.d - .5) best = {t, d}; }
-    const fastest = MODES.map(m => ({m, d:predict(m, departFor(m)).mid})).sort((a,b)=>a.d-b.d)[0];
-    const warnIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3 2 20h20Z"/><path d="M12 10v4M12 17h.01"/></svg>';
-    const okIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m5 12 5 5 9-10"/></svg>';
+    const lo = dep+p.lo, hi = dep+p.hi, c0 = arr-24, pct = v => Math.max(0,Math.min(100,(v-c0)/48*100));
+    $('wband').style.cssText = `left:${pct(lo)}%;width:${pct(hi)-pct(lo)}%`;
+    $('wmid').style.left = pct(arr)+'%';
+    $('wgoal').hidden = S.type !== 'arrive'; $('wgoal').style.left = pct(S.arrive)+'%';
+    $('w-lo').textContent = fmt(lo); $('w-hi').textContent = fmt(hi);
+    const best = bestDeparture(mode, dep);
+    const cta = $('cta-best');
     if (S.type === 'leave' && dep - best.t >= 10 && p.mid - best.d >= 4){
-      ban.className = 'banner';
-      ban.innerHTML = `${warnIc}<span>Leave at <strong>${fmt(best.t)}</strong> instead and the trip drops to <strong>${Math.round(best.d)} min</strong>. Rush hour on Rama IV builds after 07:45.</span>`;
-    } else if (fastest.m.id !== mode.id && p.mid - fastest.d >= 5){
-      ban.className = 'banner';
-      ban.innerHTML = `${warnIc}<span><strong>${fastest.m.name}</strong> is ${Math.round(p.mid - fastest.d)} min quicker right now.</span>`;
-    } else {
-      ban.className = 'banner good';
-      ban.innerHTML = `${okIc}<span>Good choice. On days like this, ${mode.name} arrived inside this window ${Math.round(90 - mode.spread*60)} times in 100.</span>`;
-    }
+      cta.hidden = false; cta.textContent = `Leave at ${fmt(best.t)}, save ${Math.round(p.mid-best.d)} min`; cta.dataset.t = best.t;
+    } else cta.hidden = true;
+    const n = Math.max(212, 1046 - Math.abs(dep-470)*3);
+    $('hero-foot').textContent = `Based on ${n.toLocaleString('en-US')} similar trips, 2006–2026 · Traffic and weather as of 07:48 ICT`;
 
-    // breakdown
-    const tot = p.mid, P = p.parts;
-    const sp = $('stack').children;
-    [P.dist,P.jam,P.rain,P.hist].forEach((v,i)=> sp[i].style.width = (v/tot*100)+'%');
-    $('legend').innerHTML = [
-      ['s-dist','Distance',P.dist],['s-jam','Traffic',P.jam],['s-rain','Weather',P.rain],['s-hist','Past-trip correction',P.hist]
-    ].map(([c,l,v])=>`<span><b class="${c}"></b>${l}<em>${c==='s-dist'?'':'+'}${Math.round(v)} min</em></span>`).join('');
+    // SIGNALS
+    const P = p.parts;
+    $('v-dist').innerHTML = `${mode.km.toFixed(1)}<small>km</small>`;
+    $('p-dist').textContent = mode.sub;
+    $('v-jam').innerHTML = `+${Math.round(P.jam)}<small>min</small>`;
+    $('p-jam').textContent = mode.id === 'rail' ? 'Rail runs above the jam; only the walk is affected' : (p.j > .7 ? 'Heavy' : p.j > .4 ? 'Building' : 'Light') + ' on Rama IV and Sathorn';
+    $('v-rain').innerHTML = `${Math.round(p.r*100)}<small>% rain</small>`;
+    $('p-rain').textContent = `Chance of rain at ${fmt(dep)}, adds ${Math.round(P.rain)} min`;
+    $('v-hist').innerHTML = `${n.toLocaleString('en-US')}<small>trips</small>`;
+    $('p-hist').textContent = `Thursdays near ${fmt(dep)}, 2006–2026`;
 
-    // signals
-    $('sig-dist').textContent = mode.km.toFixed(1)+' km';
-    $('sig-dist-p').textContent = `Route length by ${mode.name}`;
-    const jl = p.j > .7 ? ['Heavy','warn'] : p.j > .4 ? ['Building','warn'] : ['Light','ok'];
-    const jc = $('sig-jam'); jc.textContent = jl[0]; jc.className = 'chip '+jl[1];
-    $('sig-jam-p').textContent = mode.id === 'rail' ? 'Barely affects rail, only the walk' : 'Rama IV Rd and Sathorn at '+fmt(dep);
-    $('sig-rain').textContent = Math.round(p.r*100)+'%';
-    $('sig-rain-p').textContent = 'Chance of rain at '+fmt(dep);
-    const n = 1046 - Math.abs(dep-470)*3;
-    $('sig-hist').textContent = n.toLocaleString('en-US');
-    $('sig-hist-p').textContent = `Thursday trips near ${fmt(dep)}, 2006–2026`;
-
-    // modes list
-    const all = MODES.map(m => { const d = departFor(m), q = predict(m, d); return {m, d, q}; });
-    const minA = Math.min(...all.map(x=>x.d+x.q.lo)), maxA = Math.max(...all.map(x=>x.d+x.q.hi));
-    const qBest = [...all].sort((a,b)=>a.q.mid-b.q.mid)[0].m.id;
-    const rel = [...all].sort((a,b)=>a.m.spread-b.m.spread)[0].m.id;
-    $('modes').innerHTML = all.map(({m,d,q}) => {
-      const l = (d+q.lo-minA)/(maxA-minA)*100, w = (q.hi-q.lo)/(maxA-minA)*100;
-      const tags = (m.id===qBest?'<span class="chip ok">Fastest</span>':'') + (m.id===rel?'<span class="chip ok">Most reliable</span>':'');
-      const main = S.type==='leave' ? fmt(d+q.mid) : fmt(d);
-      const sub = S.type==='leave' ? `${Math.round(q.mid)} min` : 'leave by';
-      return `<button class="mode" data-id="${m.id}" aria-pressed="${m.id===S.modeId}">
-        <span class="mi" aria-hidden="true">${ICON[m.id]}</span>
-        <span><span class="mn">${m.name} ${tags}</span><span class="ms">${m.sub}</span></span>
-        <span class="mr" aria-hidden="true"><span style="left:${l}%;width:${Math.max(w,3)}%"></span></span>
-        <span class="mt">${main}<small>${sub}</small></span></button>`;
-    }).join('');
+    // BREAKDOWN
+    const tot = p.mid;
+    $('bd-total').textContent = Math.round(tot);
+    [...$('stack').children].forEach((s,i)=> s.style.width = ([P.dist,P.jam,P.rain,P.hist][i]/tot*100)+'%');
+    $('rows').innerHTML = [
+      ['--c-dist','Distance',`${mode.km.toFixed(1)} km at free-flow speed`,P.dist,''],
+      ['--c-jam','Traffic jam','Live speeds on your route right now',P.jam,'+'],
+      ['--c-rain','Weather',`${Math.round(p.r*100)}% chance of rain at departure`,P.rain,'+'],
+      ['--c-hist','20-year history','Days like today run slightly slower',P.hist,'+'],
+    ].map(([c,h,s,v,sign]) => `<div class="row"><b style="background:var(${c})"></b><div><h3>${h}</h3><p>${s}</p></div><span class="m">${sign}${Math.round(v)} min</span></div>`).join('');
 
     renderChart(mode, dep);
+    renderCompare();
+    renderHistory(mode, dep, n);
   }
 
   function renderChart(mode, dep){
-    const svg = $('chart'), W = 640, H = 220, L = 36, R = 8, T = 22, B = 26;
-    const slots = []; for (let t = 390; t <= 570; t += 10) slots.push(t);
-    const data = slots.map(t => ({t, ...predict(mode,t)}));
-    const yMax = Math.ceil(Math.max(...data.map(d=>d.hi))/20)*20;
-    const y = v => T + (H-T-B)*(1 - v/yMax);
-    const bw = (W-L-R)/slots.length;
-    const bestT = [...data].sort((a,b)=>a.mid-b.mid)[0].t;
-    const selT = slots.reduce((a,b)=> Math.abs(b-dep)<Math.abs(a-dep)?b:a);
+    const W=960,H=300,L=44,R=16,T=28,B=34;
+    const ts=[]; for (let t=390;t<=570;t+=5) ts.push(t);
+    const data = ts.map(t => ({t, ...predict(mode,t)}));
+    const yMax = Math.max(40, Math.ceil(Math.max(...data.map(d=>d.hi))/20)*20);
+    const x = t => L + (W-L-R)*(t-390)/180, y = v => T + (H-T-B)*(1-v/yMax);
     let s = '';
-    for (let v = 0; v <= yMax; v += 20) s += `<line class="gridl" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
-    s += `<text class="axis" x="${L-6}" y="12" text-anchor="end">min</text>`;
-    data.forEach((d,i) => {
-      const x = L + i*bw + bw*.18, w = bw*.64, cls = d.t===selT?'bar sel':d.t===bestT?'bar best':'bar';
-      s += `<rect class="${cls}" data-t="${d.t}" x="${x}" y="${y(d.mid)}" width="${w}" height="${y(0)-y(d.mid)}" rx="3"><title>Leave ${fmt(d.t)}: ${Math.round(d.mid)} min (${Math.round(d.lo)}–${Math.round(d.hi)})</title></rect>`;
-      s += `<line class="whisk" x1="${x+w/2}" x2="${x+w/2}" y1="${y(d.hi)}" y2="${y(d.lo)}"/>`;
-      if (d.t===selT) s += `<text class="sel-label" x="${x+w/2}" y="${y(d.hi)-6}" text-anchor="middle">${Math.round(d.mid)}</text>`;
-      if ((d.t-390)%30===0) s += `<text class="axis" x="${x+w/2}" y="${H-8}" text-anchor="middle">${fmt(d.t)}</text>`;
-    });
-    svg.innerHTML = s;
-    $('chart-sub').textContent = `${mode.name}, trip length by departure time`;
+    for (let v=0; v<=yMax; v+=20) s += `<line class="g" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L-10}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+    s += `<text class="ax" x="${L-10}" y="${T-12}" text-anchor="end">min</text>`;
+    for (let t=390;t<=570;t+=30) s += `<text class="ax" x="${x(t)}" y="${H-10}" text-anchor="middle">${fmt(t)}</text>`;
+    s += `<path class="area" d="M${data.map(d=>`${x(d.t)},${y(d.hi)}`).join('L')}L${[...data].reverse().map(d=>`${x(d.t)},${y(d.lo)}`).join('L')}Z"/>`;
+    s += `<path class="line" d="M${data.map(d=>`${x(d.t)},${y(d.mid)}`).join('L')}"/>`;
+    const bd = bestDeparture(mode, dep), best = {t:bd.t, mid:bd.d};
+    const sel = predict(mode, dep);
+    s += `<line class="sel" x1="${x(dep)}" x2="${x(dep)}" y1="${T}" y2="${H-B}"/>`;
+    s += `<circle class="seldot" cx="${x(dep)}" cy="${y(sel.mid)}" r="6"/>`;
+    s += `<text class="lbl a" x="${Math.min(x(dep)+10, W-110)}" y="${T+4}">You · ${Math.round(sel.mid)} min</text>`;
+    s += `<circle class="best" cx="${x(best.t)}" cy="${y(best.mid)}" r="7"/>`;
+    s += `<text class="lbl b" x="${x(best.t)}" y="${y(best.mid)+26}" text-anchor="middle">${Math.round(best.mid)} min</text>`;
+    s += `<rect x="${L}" y="0" width="${W-L-R}" height="${H}" fill="transparent" id="hit"/>`;
+    $('chart').innerHTML = s;
+    $('m-best').textContent = `${fmt(best.t)} · ${Math.round(best.mid)} min`;
+    $('m-sel').textContent = `${fmt(dep)} · ${Math.round(sel.mid)} min`;
+    $('lv-lede').textContent = `Trip length by departure time for ${mode.short}. Tap the chart to try a time.`;
   }
 
-  // events
+  function renderCompare(){
+    const all = MODES.map(m => { const d = departFor(m), q = predict(m,d); return {m,d,q}; });
+    const fastest = [...all].sort((a,b)=>a.q.mid-b.q.mid)[0].m.id;
+    const reliable = [...all].sort((a,b)=>a.m.spread-b.m.spread)[0].m.id;
+    $('cgrid').innerHTML = all.map(({m,d,q}) => {
+      const on = m.id === S.modeId;
+      const tag = m.id===fastest ? '<span class="tag good">Fastest</span>' : m.id===reliable ? '<span class="tag good">Most reliable</span>' : (m.rain>10 ? '<span class="tag warn">Rain risk</span>' : '<span class="tag" style="visibility:hidden">–</span>');
+      const big = S.type==='leave' ? fmt(d+q.mid) : fmt(d);
+      const bigl = S.type==='leave' ? 'Arrive' : 'Leave by';
+      return `<div class="ccol${on?' on':''}">
+        <span class="ic" aria-hidden="true">${ICON[m.id]}</span>
+        <h3>${m.name}</h3><div class="route">${m.sub}</div>${tag}
+        <div class="big">${big}</div><div class="bigl">${bigl}</div>
+        <dl>
+          <div><dt>Trip length</dt><dd>${Math.round(q.mid)} min</dd></div>
+          <div><dt>Likely window</dt><dd>${fmt(d+q.lo)}–${fmt(d+q.hi)}</dd></div>
+          <div><dt>On time, days like today</dt><dd>${onTime(m)} in 100</dd></div>
+          <div><dt>Rain adds</dt><dd>${Math.round(m.rain*q.r)} min</dd></div>
+        </dl>
+        <button class="pill ${on?'primary':'ghost'} sm" data-id="${m.id}" aria-pressed="${on}">${on?'Selected':'Choose '+m.name}</button>
+      </div>`;
+    }).join('');
+  }
+
+  function renderHistory(mode, dep, n){
+    const pctOn = onTime(mode), dots = Math.round(pctOn/5);
+    $('hs-fig').innerHTML = `${Math.round(pctOn/10)}<small>in 10 arrived inside the window</small>`;
+    $('hs-lede').textContent = `Rainy November Thursdays, leaving around ${fmt(dep)} by ${mode.short}.`;
+    $('dots').innerHTML = Array.from({length:20},(_,i)=>`<i class="${i<dots?'':'late'}"></i>`).join('');
+    $('hs-foot').textContent = `Each dot is 5% of ${n.toLocaleString('en-US')} matched trips · 2006–2026`;
+  }
+
+  const setType = type => { S.type = type; $('m-leave').setAttribute('aria-pressed', type==='leave'); $('m-arrive').setAttribute('aria-pressed', type==='arrive'); render(); };
   $('t').addEventListener('input', e => { const v = +e.target.value; S.type==='leave' ? S.t = v : S.arrive = v; render(); });
-  $('m-leave').addEventListener('click', () => { S.type='leave'; $('m-leave').setAttribute('aria-pressed','true'); $('m-arrive').setAttribute('aria-pressed','false'); render(); });
-  $('m-arrive').addEventListener('click', () => { S.type='arrive'; $('m-arrive').setAttribute('aria-pressed','true'); $('m-leave').setAttribute('aria-pressed','false'); render(); });
-  $('modes').addEventListener('click', e => { const b = e.target.closest('.mode'); if (b){ S.modeId = b.dataset.id; render(); } });
-  $('chart').addEventListener('click', e => { const r = e.target.closest('rect[data-t]'); if (r){ S.type='leave'; S.t=+r.dataset.t; $('m-leave').setAttribute('aria-pressed','true'); $('m-arrive').setAttribute('aria-pressed','false'); render(); } });
-  document.querySelectorAll('.trip').forEach(b => b.addEventListener('click', () => {
-    S.type='leave'; S.t=+b.dataset.t; $('m-leave').setAttribute('aria-pressed','true'); $('m-arrive').setAttribute('aria-pressed','false');
-    S.modeId = b.textContent.includes('Motorbike') ? 'moto' : b.textContent.includes('Car') ? 'car' : 'rail';
-    render(); window.scrollTo({top:0, behavior:'smooth'});
-  }));
+  $('m-leave').addEventListener('click', () => setType('leave'));
+  $('m-arrive').addEventListener('click', () => setType('arrive'));
+  $('cta-best').addEventListener('click', e => { S.t = +e.currentTarget.dataset.t; setType('leave'); });
+  $('cgrid').addEventListener('click', e => { const b = e.target.closest('button[data-id]'); if (b){ S.modeId = b.dataset.id; render(); } });
+  $('chart').addEventListener('click', e => {
+    const svg = $('chart'), r = svg.getBoundingClientRect(), vx = (e.clientX - r.left) / r.width * 960;
+    const t = Math.round((390 + (vx-44)/(960-44-16)*180)/5)*5;
+    if (t >= 390 && t <= 570){ S.t = t; setType('leave'); }
+  });
   render();
 })();
 </script>
